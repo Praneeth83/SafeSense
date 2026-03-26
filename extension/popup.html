@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+
+  <h2>SafeSense</h2>
+
+  <div id="riskCard" class="card">
+
+    <div class="circleContainer">
+
+      <svg class="progressRing" width="110" height="110">
+        <circle class="bg" cx="55" cy="55" r="45"/>
+        <circle class="progress" cx="55" cy="55" r="45"/>
+      </svg>
+
+      <div id="circleText">0%</div>
+
+    </div>
+
+    <div id="riskStatus"></div>
+
+  </div>
+
+  <div id="triggers"></div>
+
+  <div class="toggleRow">
+    <label class="switch">
+      <input type="checkbox" id="screenshotToggle">
+      <span class="slider"></span>
+    </label>
+    <span class="toggleText">Take Screenshot (OCR)</span>
+  </div>
+
+  <button id="reanalyzeBtn">Re-Analyze Page</button>
+
+  <script src="popup.js"></script>
+
+</body>
+</html>

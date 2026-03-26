@@ -1,0 +1,23 @@
+emotional-web-safety/
+│
+├── extension/
+│   ├── manifest.json
+│   ├── background.js
+│   ├── content.js
+│   ├── popup.html
+│   ├── popup.js
+│   ├── popup.css
+│
+├── backend/
+│   ├── main.py
+│   ├── models/
+│   │   ├── emotion_model.py
+│   │   ├── phishing_model.py
+│   │   ├── scam_model.py
+│   ├── preprocessing/
+│   │   ├── text_cleaner.py
+│   │   ├── ocr.py
+│   │   ├── dom_features.py
+│   ├── risk_engine.py
+│
+└── README.md
