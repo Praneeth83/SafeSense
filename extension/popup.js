@@ -2,6 +2,7 @@ const riskStatus = document.getElementById("riskStatus");
 const triggersDiv = document.getElementById("triggers");
 const reBtn = document.getElementById("reanalyzeBtn");
 const screenshotToggle = document.getElementById("screenshotToggle");
+const warningToggle = document.getElementById("warningToggle");
 
 const circle = document.querySelector(".progress");
 const circleText = document.getElementById("circleText");
@@ -16,10 +17,8 @@ circle.style.strokeDashoffset = circumference;
 /* ---------- LOADING ---------- */
 function startLoading() {
   container.classList.add("loading");
-
   circle.style.strokeDasharray = "80 " + circumference;
   circle.style.strokeDashoffset = 0;
-
   circleText.innerText = "...";
 }
 
@@ -57,7 +56,8 @@ function animateCircle(percent, color) {
 function render(result) {
   if (!result) return;
 
-  let score = Number(result.emotion_score);
+  // IMPORTANT: USE FINAL RISK
+  let score = Number(result.final_risk);
   if (isNaN(score)) score = 0;
 
   score = Math.max(0, Math.min(score, 1));
@@ -69,27 +69,26 @@ function render(result) {
     color = "#c62828";
     riskStatus.innerHTML = `
       <div class="status high">High Risk</div>
-      <div class="subtext">Strong manipulation signals detected • ${percent}%</div>
+      <div class="subtext">High phishing / scam risk detected • ${percent}%</div>
     `;
   } 
   else if (score > 0.4) {
     color = "#f9a825";
     riskStatus.innerHTML = `
       <div class="status medium">Be Careful</div>
-      <div class="subtext">Some suspicious patterns found • ${percent}%</div>
+      <div class="subtext">Suspicious login / payment section detected • ${percent}%</div>
     `;
   } 
   else {
     color = "#2e7d32";
     riskStatus.innerHTML = `
       <div class="status low">Looks Safe</div>
-      <div class="subtext">No major issues detected • ${percent}%</div>
+      <div class="subtext">No major risk detected • ${percent}%</div>
     `;
   }
 
   animateCircle(percent, color);
 
-  // triggers
   triggersDiv.innerHTML = "";
 
   if (result.triggers?.length) {
@@ -101,22 +100,31 @@ function render(result) {
 }
 
 /* ---------- LOAD ---------- */
-chrome.storage.local.get(["analysisResult", "useScreenshot"], data => {
-  render(data.analysisResult);
-  screenshotToggle.checked = data.useScreenshot || false;
-});
+chrome.storage.local.get(
+  ["analysisResult", "useScreenshot", "useWarning"],
+  data => {
+    render(data.analysisResult);
+    screenshotToggle.checked = data.useScreenshot || false;
+    warningToggle.checked = data.useWarning ?? true;
+  }
+);
 
-/* ---------- TOGGLE ---------- */
+/* ---------- TOGGLES ---------- */
 screenshotToggle.addEventListener("change", () => {
   chrome.storage.local.set({
     useScreenshot: screenshotToggle.checked
   });
 });
 
-/* ---------- REANALYZE (FIXED) ---------- */
+warningToggle.addEventListener("change", () => {
+  chrome.storage.local.set({
+    useWarning: warningToggle.checked
+  });
+});
+
+/* ---------- REANALYZE ---------- */
 reBtn.addEventListener("click", () => {
 
-  // 🧹 Clear old result (prevents stale UI)
   chrome.storage.local.remove("analysisResult");
 
   startLoading();
@@ -130,14 +138,12 @@ reBtn.addEventListener("click", () => {
     (response) => {
 
       if (chrome.runtime.lastError) {
-        console.error("Message error:", chrome.runtime.lastError);
         riskStatus.innerHTML = `<div class="subtext">Extension error</div>`;
         return;
       }
 
       if (response?.status === "DONE" && response.result) {
 
-        // ✅ CRITICAL: Update storage
         chrome.storage.local.set({
           analysisResult: response.result
         });

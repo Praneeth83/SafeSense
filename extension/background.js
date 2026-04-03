@@ -6,13 +6,33 @@ function analyzePageData(pageData, callback) {
   })
     .then(res => res.json())
     .then(result => {
+
+      // Save result
       chrome.storage.local.set({ analysisResult: result }, () => {
-        console.log("SafeSense: Analysis complete", result);
         if (callback) callback(result);
       });
+
+      // Get toggle state
+      chrome.storage.local.get(["useWarning"], data => {
+
+        const showWarning = data.useWarning !== false;
+
+        // Send result + toggle state to content.js
+        chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+          if (tabs.length > 0) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              type: "ANALYSIS_RESULT",
+              data: result,
+              showWarning: showWarning
+            });
+          }
+        });
+
+      });
+
     })
     .catch(err => {
-      console.error("SafeSense: Backend error", err);
+      console.error("Backend error", err);
       if (callback) callback(null);
     });
 }
@@ -20,12 +40,10 @@ function analyzePageData(pageData, callback) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "PAGE_DATA") {
-    console.log("SafeSense: Auto page data received");
     analyzePageData(message.payload);
   }
 
   if (message.type === "REANALYZE_REQUEST") {
-    console.log("SafeSense: Re-analyze button clicked");
 
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       if (!tabs.length) {
@@ -35,37 +53,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       const tabId = tabs[0].id;
 
-      // 🔹 NEW: Capture screenshot if toggle enabled
-      if (message.screenshot) {
-
-        chrome.tabs.captureVisibleTab(null, { format: "png" }, dataUrl => {
-
-          if (!dataUrl) {
-            console.error("SafeSense: Screenshot failed");
-            return;
-          }
-
-          const filename =
-            "safesense_screenshot_" + Date.now() + ".png";
-
-          chrome.downloads.download({
-            url: dataUrl,
-            filename: filename,
-            saveAs: false
-          });
-
-          console.log("SafeSense: Screenshot saved");
-        });
-
-      }
-
-      // Existing analysis flow
       chrome.tabs.sendMessage(
         tabId,
         { type: "REANALYZE_PAGE" },
         response => {
-
-          console.log("SafeSense: Content script response", response);
 
           if (response?.payload) {
             analyzePageData(response.payload, result => {

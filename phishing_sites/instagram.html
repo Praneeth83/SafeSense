@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #000;
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .container {
+    display: flex;
+    height: 100vh;
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    flex: 0 0 58%;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .logo {
+    position: absolute;
+    top: 40px;
+    left: 50px;
+  }
+
+  .logo-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-icon svg {
+    width: 42px;
+    height: 42px;
+  }
+
+  .tagline {
+    margin-top: 40px;
+  }
+
+  .tagline h1 {
+    font-size: 46px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #fff;
+    max-width: 520px;
+  }
+
+  .tagline .highlight {
+    background: linear-gradient(90deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .photo-cards {
+    position: relative;
+    width: 320px;
+    height: 260px;
+    margin-top: 40px;
+  }
+
+  .card {
+    position: absolute;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .card-1 {
+    width: 155px;
+    height: 200px;
+    left: 0;
+    top: 30px;
+    z-index: 1;
+  }
+
+  .card-2 {
+    width: 185px;
+    height: 215px;
+    left: 90px;
+    top: 0;
+    z-index: 2;
+  }
+
+  .card-3 {
+    width: 130px;
+    height: 160px;
+    left: 200px;
+    top: 60px;
+    z-index: 1;
+  }
+
+  .person {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .person-1 { background: linear-gradient(180deg, #2d5a3d 0%, #1a3525 100%); }
+  .person-2 { background: linear-gradient(180deg, #3d3d5a 0%, #252535 100%); }
+  .person-3 { background: linear-gradient(180deg, #5a3d2d 0%, #352515 100%); }
+
+  .card-reaction {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .star-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #ffd700;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .heart-float {
+    position: absolute;
+    left: 80px;
+    bottom: 20px;
+    z-index: 5;
+    font-size: 28px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  }
+
+  .divider {
+    width: 1px;
+    background: #2a2a2a;
+    flex-shrink: 0;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    flex: 1;
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 50px;
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .back-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .back-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke: #fff;
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .login-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+
+  .input-field {
+    width: 100%;
+    background: #262626;
+    border: 1.5px solid #363636;
+    border-radius: 14px;
+    padding: 17px 18px;
+    font-size: 15px;
+    color: #fff;
+    outline: none;
+    margin-bottom: 12px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+
+  .input-field::placeholder {
+    color: #888;
+    font-size: 15px;
+  }
+
+  .input-field:focus {
+    border-color: #555;
+    background: #2e2e2e;
+  }
+
+  .login-btn {
+    width: 100%;
+    background: #2563b0;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 17px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 16px;
+    font-family: inherit;
+    letter-spacing: 0.2px;
+    transition: background 0.2s;
+  }
+
+  .login-btn:hover { background: #1d4f99; }
+
+  .forgot-link {
+    text-align: center;
+    color: #e0e0e0;
+    font-size: 15px;
+    margin-bottom: 40px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .forgot-link:hover { text-decoration: underline; }
+
+  .fb-btn {
+    width: 100%;
+    background: transparent;
+    color: #e0e0e0;
+    border: 1.5px solid #363636;
+    border-radius: 14px;
+    padding: 15px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 10px;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .fb-btn:hover { border-color: #555; }
+
+  .fb-icon {
+    width: 20px;
+    height: 20px;
+    background: #1877f2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .create-btn {
+    width: 100%;
+    background: transparent;
+    color: #4a9eed;
+    border: 1.5px solid #4a9eed;
+    border-radius: 14px;
+    padding: 15px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    margin-bottom: 24px;
+    transition: background 0.2s;
+  }
+
+  .create-btn:hover { background: rgba(74,158,237,0.08); }
+
+  .meta-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #888;
+    font-size: 14px;
+  }
+
+  .silhouette {
+    opacity: 0.5;
+    width: 80%;
+  }
+
+  /* BOTTOM FOOTER */
+  .bottom-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #0d0d0d;
+    border-top: 1px solid #1e1e1e;
+    padding: 14px 30px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+  }
+
+  .footer-link {
+    color: #666;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .footer-link:hover { color: #999; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+          <circle cx="12" cy="12" r="4.5"/>
+          <circle cx="18" cy="6" r="1.2" fill="white" stroke="none"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="tagline">
+      <h1>See everyday moments from your<br><span class="highlight">close friends.</span></h1>
+    </div>
+
+    <div class="photo-cards">
+      <div class="card card-1">
+        <div class="person person-1">
+          <svg class="silhouette" viewBox="0 0 100 140" fill="rgba(255,255,255,0.3)">
+            <ellipse cx="50" cy="35" rx="18" ry="22"/>
+            <path d="M20 140 Q20 85 50 80 Q80 85 80 140"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card card-2">
+        <div class="person person-2">
+          <svg class="silhouette" viewBox="0 0 100 160" fill="rgba(255,255,255,0.3)">
+            <ellipse cx="50" cy="35" rx="20" ry="24"/>
+            <path d="M18 160 Q18 90 50 82 Q82 90 82 160"/>
+          </svg>
+        </div>
+        <div class="star-badge">⭐</div>
+        <div class="card-reaction">❤️ 24</div>
+      </div>
+      <div class="card card-3">
+        <div class="person person-3">
+          <svg class="silhouette" viewBox="0 0 100 120" fill="rgba(255,255,255,0.3)">
+            <ellipse cx="50" cy="30" rx="16" ry="19"/>
+            <path d="M22 120 Q22 72 50 66 Q78 72 78 120"/>
+          </svg>
+        </div>
+      </div>
+      <div class="heart-float">❤️</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="login-box">
+      <div class="back-header">
+        <button class="back-btn">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="login-title">Log into Instagram</span>
+      </div>
+
+      <input class="input-field" type="text" placeholder="Mobile number, username or email" />
+      <input class="input-field" type="password" placeholder="Password" />
+
+      <button class="login-btn">Log in</button>
+
+      <div class="forgot-link">Forgot password?</div>
+
+      <button class="fb-btn">
+        <div class="fb-icon">f</div>
+        Log in with Facebook
+      </button>
+
+      <button class="create-btn">Create new account</button>
+
+      <div class="meta-footer">
+        <span style="font-size:18px; letter-spacing:-1px; color:#aaa">∞</span>
+        <span>Meta</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-footer">
+  <a class="footer-link" href="#">Meta</a>
+  <a class="footer-link" href="#">About</a>
+  <a class="footer-link" href="#">Blog</a>
+  <a class="footer-link" href="#">Jobs</a>
+  <a class="footer-link" href="#">Help</a>
+  <a class="footer-link" href="#">API</a>
+  <a class="footer-link" href="#">Privacy</a>
+  <a class="footer-link" href="#">Terms</a>
+  <a class="footer-link" href="#">Locations</a>
+  <a class="footer-link" href="#">Instagram Lite</a>
+  <a class="footer-link" href="#">Meta AI</a>
+  <a class="footer-link" href="#">Threads</a>
+  <a class="footer-link" href="#">Contact Uploading & Non-Users</a>
+  <a class="footer-link" href="#">Instagram Verified</a>
+</div>
+
+</body>
+</html>

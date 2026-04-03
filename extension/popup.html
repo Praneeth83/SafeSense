@@ -12,14 +12,11 @@
   <div id="riskCard" class="card">
 
     <div class="circleContainer">
-
       <svg class="progressRing" width="110" height="110">
         <circle class="bg" cx="55" cy="55" r="45"/>
         <circle class="progress" cx="55" cy="55" r="45"/>
       </svg>
-
       <div id="circleText">0%</div>
-
     </div>
 
     <div id="riskStatus"></div>
@@ -28,12 +25,22 @@
 
   <div id="triggers"></div>
 
+  <!-- Screenshot Toggle -->
   <div class="toggleRow">
     <label class="switch">
       <input type="checkbox" id="screenshotToggle">
       <span class="slider"></span>
     </label>
     <span class="toggleText">Take Screenshot (OCR)</span>
+  </div>
+
+  <!-- NEW Warning Toggle -->
+  <div class="toggleRow">
+    <label class="switch">
+      <input type="checkbox" id="warningToggle">
+      <span class="slider"></span>
+    </label>
+    <span class="toggleText">Show Visual Warning</span>
   </div>
 
   <button id="reanalyzeBtn">Re-Analyze Page</button>
