@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amazon Sign-In</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      background-color: #fff;
+      color: #0f1111;
+    }
+
+    /* ── Header ── */
+    header {
+      background-color: #131921;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Main layout ── */
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 0;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 348px;
+      border: 1px solid #d5d9d9;
+      border-radius: 8px;
+      padding: 24px 28px 28px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 400;
+      color: #0f1111;
+      margin-bottom: 20px;
+    }
+
+    /* ── Error box ── */
+    .error-box {
+      display: none;
+      background: #fff8f8;
+      border: 1px solid #cc0c39;
+      border-radius: 4px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      color: #cc0c39;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .error-box.visible { display: flex; }
+
+    /* ── Form elements ── */
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 7px 8px;
+      font-size: 13px;
+      border: 1px solid #888c8c;
+      border-radius: 3px;
+      outline: none;
+      font-family: inherit;
+      color: #0f1111;
+      transition: border-color 0.1s, box-shadow 0.1s;
+    }
+    input:focus {
+      border-color: #e77600;
+      box-shadow: 0 0 0 3px rgba(228,121,17,.45);
+    }
+    input.error-border { border-color: #cc0c39; }
+    input.error-border:focus { box-shadow: 0 0 0 3px rgba(204,12,57,.3); }
+
+    .input-group { margin-bottom: 14px; }
+
+    /* ── Terms text ── */
+    .terms {
+      font-size: 12px;
+      color: #555;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+    .terms a { color: #0066c0; text-decoration: none; }
+    .terms a:hover { color: #c45500; text-decoration: underline; }
+
+    /* ── Buttons ── */
+    .btn-yellow {
+      width: 100%;
+      padding: 9px 10px;
+      background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+      border: 1px solid #a88734;
+      border-top-color: #c79d3a;
+      border-radius: 3px;
+      font-size: 13px;
+      color: #111;
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: 14px;
+      transition: filter 0.1s;
+    }
+    .btn-yellow:hover { filter: brightness(0.97); }
+    .btn-yellow:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-gray {
+      display: block;
+      width: 100%;
+      padding: 9px 10px;
+      background: linear-gradient(to bottom, #f4f4f4, #e8e8e8);
+      border: 1px solid #adb1b8;
+      border-top-color: #c9ccd2;
+      border-radius: 3px;
+      font-size: 13px;
+      color: #0f1111;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: center;
+      text-decoration: none;
+      transition: filter 0.1s;
+    }
+    .btn-gray:hover { filter: brightness(0.97); }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0;
+      color: #767676;
+      font-size: 12px;
+    }
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      border-top: 1px solid #e7e7e7;
+    }
+
+    /* ── Password step ── */
+    .email-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+    .email-row strong { color: #0f1111; }
+    .change-link {
+      color: #0066c0;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .change-link:hover { color: #c45500; text-decoration: underline; }
+
+    .show-password-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 400;
+      cursor: pointer;
+    }
+    .show-password-label input { width: auto; }
+
+    .forgot-link {
+      display: inline-block;
+      color: #0066c0;
+      text-decoration: none;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    .forgot-link:hover { color: #c45500; text-decoration: underline; }
+
+    /* ── Sub-links (below card) ── */
+    .sub-links {
+      width: 100%;
+      max-width: 348px;
+      text-align: center;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 14px;
+    }
+    .sub-links a { color: #0066c0; text-decoration: none; }
+    .sub-links a:hover { color: #c45500; text-decoration: underline; }
+    .sub-links hr { border: none; border-top: 1px solid #e7e7e7; margin-bottom: 12px; }
+
+    /* ── Footer ── */
+    .page-footer {
+      width: 100%;
+      background: linear-gradient(to bottom, #e3e6e6 0%, #fff 50%);
+      padding: 20px 16px 8px;
+      margin-top: 12px;
+    }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px 18px;
+      margin-bottom: 12px;
+    }
+    .footer-links a {
+      color: #0066c0;
+      text-decoration: none;
+      font-size: 12px;
+    }
+    .footer-links a:hover { color: #c45500; text-decoration: underline; }
+    .footer-copy {
+      text-align: center;
+      font-size: 11px;
+      color: #767676;
+      padding-bottom: 16px;
+    }
+    .footer-bottom {
+      background-color: #232f3e;
+      padding: 12px;
+      text-align: center;
+      font-size: 11px;
+      color: #ccc;
+    }
+
+    /* ── Step visibility ── */
+    #step-email    { display: block; }
+    #step-password { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 75" width="130" height="40">
+    <!-- "amazon" wordmark -->
+    <text x="10" y="52" font-family="Arial, sans-serif" font-size="52" font-weight="bold" fill="white">amazon</text>
+    <!-- Orange smile/arrow -->
+    <path d="M 14 62 Q 85 82 170 62" stroke="#FF9900" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <polygon points="170,57 178,65 165,68" fill="#FF9900"/>
+    <!-- .com -->
+    <text x="176" y="52" font-family="Arial, sans-serif" font-size="22" fill="white">.com</text>
+  </svg>
+</header>
+
+<main>
+
+  <!-- ── Step 1: Email ── -->
+  <div id="step-email" style="width:100%;max-width:348px;">
+    <div class="card">
+      <h1>Sign in</h1>
+
+      <div class="error-box" id="email-error-box">
+        <span>⚠</span>
+        <span id="email-error-text">Please enter your email or mobile phone number.</span>
+      </div>
+
+      <form onsubmit="handleEmailNext(event)">
+        <div class="input-group">
+          <label for="email-input">Email or mobile phone number</label>
+          <input type="email" id="email-input" autocomplete="email" />
+        </div>
+
+        <div class="terms">
+          By continuing, you agree to Amazon's
+          <a href="#">Conditions of Use</a> and <a href="#">Privacy Notice</a>.
+        </div>
+
+        <button type="submit" class="btn-yellow">Continue</button>
+      </form>
+
+      <div class="divider">New to Amazon?</div>
+      <a href="#" class="btn-gray">Create your Amazon account</a>
+    </div>
+
+    <div style="text-align:center;font-size:12px;color:#555;margin-bottom:8px;">
+      <a href="#" style="color:#0066c0;text-decoration:none;">Conditions of Use</a>
+      &nbsp;&nbsp;
+      <a href="#" style="color:#0066c0;text-decoration:none;">Privacy Notice</a>
+      &nbsp;&nbsp;
+      <a href="#" style="color:#0066c0;text-decoration:none;">Help</a>
+    </div>
+    <div style="text-align:center;font-size:11px;color:#767676;margin-bottom:20px;">
+      © 1996–2025, Amazon.com, Inc. or its affiliates
+    </div>
+  </div>
+
+  <!-- ── Step 2: Password ── -->
+  <div id="step-password" style="width:100%;max-width:348px;">
+    <div class="card">
+      <h1>Sign in</h1>
+
+      <div class="error-box" id="password-error-box">
+        <span>⚠</span>
+        <span id="password-error-text">Your password is incorrect.</span>
+      </div>
+
+      <div class="email-row">
+        <strong id="email-display"></strong>
+        <a class="change-link" onclick="goBack()">Change</a>
+      </div>
+
+      <form onsubmit="handleLogin(event)">
+        <div class="input-group">
+          <label for="password-input">Password</label>
+          <input type="password" id="password-input" autocomplete="current-password" />
+          <label class="show-password-label">
+            <input type="checkbox" onchange="togglePassword(this)" />
+            Show password
+          </label>
+        </div>
+
+        <button type="submit" class="btn-yellow" id="signin-btn">Sign in</button>
+      </form>
+
+      <a href="#" class="forgot-link">Forgot your password?</a>
+    </div>
+
+    <div class="sub-links">
+      <hr />
+      <span>Other accounts: &nbsp;</span>
+      <a href="#">Seller on Amazon?</a>
+      &nbsp;|&nbsp;
+      <a href="#">Kindle Store</a>
+    </div>
+
+    <div style="text-align:center;font-size:12px;color:#555;margin-bottom:8px;">
+      <a href="#" style="color:#0066c0;text-decoration:none;">Conditions of Use</a>
+      &nbsp;&nbsp;
+      <a href="#" style="color:#0066c0;text-decoration:none;">Privacy Notice</a>
+      &nbsp;&nbsp;
+      <a href="#" style="color:#0066c0;text-decoration:none;">Help</a>
+    </div>
+    <div style="text-align:center;font-size:11px;color:#767676;margin-bottom:20px;">
+      © 1996–2025, Amazon.com, Inc. or its affiliates
+    </div>
+  </div>
+
+</main>
+
+<div class="page-footer">
+  <div class="footer-links">
+    <a href="#">Conditions of Use</a>
+    <a href="#">Privacy Notice</a>
+    <a href="#">Your Ads Privacy Choices</a>
+    <a href="#">Help</a>
+  </div>
+  <div class="footer-copy">© 1996–2025, Amazon.com, Inc. or its affiliates</div>
+</div>
+<div class="footer-bottom">
+  © 1996–2025, Amazon.com, Inc. or its affiliates
+</div>
+
+<script>
+  function handleEmailNext(e) {
+    e.preventDefault();
+    var email = document.getElementById('email-input').value.trim();
+    var input = document.getElementById('email-input');
+    var errorBox = document.getElementById('email-error-box');
+    var errorText = document.getElementById('email-error-text');
+
+    if (!email) {
+      input.classList.add('error-border');
+      errorText.textContent = 'Please enter your email or mobile phone number.';
+      errorBox.classList.add('visible');
+      return;
+    }
+
+    input.classList.remove('error-border');
+    errorBox.classList.remove('visible');
+
+    document.getElementById('email-display').textContent = email;
+    document.getElementById('step-email').style.display = 'none';
+    document.getElementById('step-password').style.display = 'block';
+    setTimeout(function () {
+      document.getElementById('password-input').focus();
+    }, 50);
+  }
+
+  function goBack() {
+    document.getElementById('step-password').style.display = 'none';
+    document.getElementById('step-email').style.display = 'block';
+    document.getElementById('password-input').value = '';
+    document.getElementById('password-input').classList.remove('error-border');
+    document.getElementById('password-error-box').classList.remove('visible');
+  }
+
+  function togglePassword(checkbox) {
+    document.getElementById('password-input').type = checkbox.checked ? 'text' : 'password';
+  }
+
+  function handleLogin(e) {
+    e.preventDefault();
+    var password = document.getElementById('password-input').value;
+    var input = document.getElementById('password-input');
+    var errorBox = document.getElementById('password-error-box');
+    var errorText = document.getElementById('password-error-text');
+    var btn = document.getElementById('signin-btn');
+
+    if (!password) {
+      input.classList.add('error-border');
+      errorText.textContent = 'Enter your password.';
+      errorBox.classList.add('visible');
+      return;
+    }
+
+    input.classList.remove('error-border');
+    errorBox.classList.remove('visible');
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+
+    setTimeout(function () {
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+      input.classList.add('error-border');
+      errorText.textContent = 'Your password is incorrect.';
+      errorBox.classList.add('visible');
+    }, 1500);
+  }
+</script>
+
+</body>
+</html>

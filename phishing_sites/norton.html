@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Malware</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #cc0000;
+    font-family: Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  /* Fake browser chrome */
+  .browser {
+    width: 1160px;
+    max-width: 100%;
+    background: #f0f0f0;
+    border: 1px solid #888;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  .browser-titlebar {
+    background: linear-gradient(to bottom, #d6d6d6, #c0c0c0);
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #999;
+  }
+
+  .tab {
+    background: #f0f0f0;
+    border: 1px solid #999;
+    border-bottom: none;
+    padding: 4px 30px 4px 10px;
+    font-size: 12px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    border-radius: 4px 4px 0 0;
+  }
+
+  .tab-icon { font-size: 11px; }
+  .tab-close {
+    position: absolute;
+    right: 6px;
+    font-size: 11px;
+    color: #666;
+  }
+
+  .window-controls {
+    display: flex;
+    gap: 4px;
+  }
+
+  .win-btn {
+    width: 26px;
+    height: 20px;
+    border: 1px solid #888;
+    background: linear-gradient(to bottom, #e0e0e0, #c8c8c8);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+  }
+
+  .win-btn.close { background: linear-gradient(to bottom, #e04040, #c03030); color: white; }
+
+  /* Address bar row */
+  .browser-toolbar {
+    background: #ddd;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid #bbb;
+  }
+
+  .nav-btn {
+    width: 24px;
+    height: 22px;
+    background: linear-gradient(to bottom, #e8e8e8, #d0d0d0);
+    border: 1px solid #999;
+    border-radius: 2px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+  }
+
+  .address-bar {
+    flex: 1;
+    height: 22px;
+    border: 1px solid #aaa;
+    padding: 0 6px;
+    font-size: 12px;
+    background: white;
+    color: #333;
+  }
+
+  .menu-icons {
+    display: flex;
+    gap: 4px;
+  }
+
+  .menu-icon {
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(to bottom, #e8e8e8, #d0d0d0);
+    border: 1px solid #999;
+    border-radius: 2px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #555;
+  }
+
+  .norton-icon { background: #cc0000; color: white; font-weight: bold; font-size: 10px; }
+
+  /* Red page body */
+  .browser-body {
+    background: #cc0000;
+    padding: 40px 20px;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Popup window */
+  .popup {
+    background: white;
+    width: 780px;
+    max-width: 100%;
+    border: 2px solid #555;
+    box-shadow: 4px 4px 12px rgba(0,0,0,0.6);
+  }
+
+  .popup-titlebar {
+    background: linear-gradient(to bottom, #3a3a3a, #1e1e1e);
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .popup-title {
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .popup-controls {
+    display: flex;
+    gap: 2px;
+  }
+
+  .popup-btn {
+    width: 20px;
+    height: 18px;
+    border: 1px solid #777;
+    background: linear-gradient(to bottom, #555, #333);
+    color: #ccc;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Help link */
+  .popup-help {
+    text-align: right;
+    padding: 2px 10px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .popup-help a {
+    font-size: 12px;
+    color: #333;
+    text-decoration: none;
+  }
+
+  .popup-help a:hover { text-decoration: underline; }
+
+  /* Threats header */
+  .threats-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: white;
+  }
+
+  .threats-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #cc0000;
+    padding: 10px 16px;
+  }
+
+  .threats-badge .x-icon {
+    background: white;
+    color: #cc0000;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    border-radius: 2px;
+  }
+
+  .threats-badge span {
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+  }
+
+  .norton-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .norton-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 4px solid #f5a623;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .norton-check {
+    font-size: 28px;
+    color: #f5a623;
+    font-weight: bold;
+  }
+
+  .norton-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .norton-name {
+    font-size: 26px;
+    font-weight: bold;
+    color: #1a1a1a;
+    line-height: 1;
+  }
+
+  .norton-sub {
+    font-size: 11px;
+    color: #555;
+  }
+
+  /* Call support */
+  .call-support {
+    padding: 10px 14px;
+    background: white;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .call-support p {
+    font-size: 15px;
+    font-weight: bold;
+    color: #222;
+  }
+
+  .call-support span {
+    font-size: 26px;
+    font-weight: bold;
+    color: #111;
+    margin-left: 10px;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead tr {
+    background: #444;
+    color: white;
+  }
+
+  thead th {
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: left;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  tbody td {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #333;
+    vertical-align: middle;
+  }
+
+  tbody td a {
+    color: #1a5276;
+    text-decoration: underline;
+  }
+
+  .risk-cell { color: #333; font-size: 13px; }
+  .status-cell { color: #333; font-size: 13px; }
+
+  .action-cell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .action-select {
+    padding: 4px 4px;
+    font-size: 12px;
+    border: 1px solid #999;
+    background: white;
+    cursor: pointer;
+  }
+
+  .go-btn {
+    background: #f5a623;
+    border: 1px solid #d4891a;
+    color: #333;
+    font-weight: bold;
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* Middle message */
+  .infection-msg {
+    text-align: center;
+    padding: 14px 20px 4px;
+    background: white;
+  }
+
+  .infection-msg p {
+    font-size: 14px;
+    color: #222;
+    line-height: 1.5;
+  }
+
+  .helpline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .helpline label {
+    font-size: 15px;
+    color: #333;
+  }
+
+  .helpline span {
+    font-size: 26px;
+    font-weight: bold;
+    color: #111;
+  }
+
+  /* Warning note */
+  .warning-note {
+    padding: 6px 14px;
+    background: white;
+  }
+
+  .warning-note p {
+    font-size: 11px;
+    color: #cc0000;
+    font-style: italic;
+  }
+
+  /* Quarantine note */
+  .quarantine-note {
+    padding: 4px 14px 8px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .quarantine-note p {
+    font-size: 12px;
+    color: #444;
+  }
+
+  .quarantine-note a { color: #1a5276; }
+
+  .rec-actions {
+    font-size: 11px;
+    color: #666;
+    font-style: italic;
+  }
+
+  /* Footer bar */
+  .popup-footer {
+    background: white;
+    border-top: 2px solid #ddd;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .footer-norton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .footer-norton-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid #f5a623;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #f5a623;
+    font-weight: bold;
+  }
+
+  .footer-norton-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+
+  .footer-norton-text .fn { font-size: 16px; font-weight: bold; color: #1a1a1a; }
+  .footer-norton-text .fs { font-size: 9px; color: #666; }
+
+  .footer-msg {
+    color: #cc0000;
+    font-size: 14px;
+    font-weight: bold;
+    max-width: 360px;
+    line-height: 1.3;
+  }
+
+  .footer-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .export-link {
+    font-size: 12px;
+    color: #1a5276;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .close-btn {
+    background: white;
+    border: 2px solid #888;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #333;
+  }
+
+  .apply-btn {
+    background: #cc0000;
+    border: 2px solid #990000;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+<!-- Simulated Browser -->
+
+
+  <!-- Toolbar -->
+ 
+
+  <!-- Red browser body -->
+  <div class="browser-body">
+
+    <!-- Norton Popup -->
+    <div class="popup">
+
+      <!-- Popup title bar -->
+      <div class="popup-titlebar">
+        <span class="popup-title">Action Required</span>
+        <div class="popup-controls">
+          <div class="popup-btn">—</div>
+          <div class="popup-btn">□</div>
+          <div class="popup-btn">✕</div>
+        </div>
+      </div>
+
+      <!-- Help -->
+      <div class="popup-help"><a href="#">Help</a></div>
+
+      <!-- Threats header -->
+      <div class="threats-header">
+        <div class="threats-badge">
+          <div class="x-icon">✕</div>
+          <span>Threats Detected</span>
+        </div>
+        <div class="norton-logo">
+          <div class="norton-circle">
+            <span class="norton-check">✓</span>
+          </div>
+          <div class="norton-text">
+            <span class="norton-name">Norton™</span>
+            <span class="norton-sub">by Symantec</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Call support -->
+      <div class="call-support">
+        <p>Threats Detected ! Call Support <span>1-855-637-1900</span></p>
+      </div>
+
+      <!-- Table -->
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Risk</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <a href="#">Risk in compressed file</a> have been detected. The compressed file and all contents, including uninfected files will be deleted
+            </td>
+            <td class="risk-cell">High</td>
+            <td class="status-cell">Not Attempted</td>
+            <td>
+              <div class="action-cell">
+                <select class="action-select">
+                  <option>Delete*</option>
+                  <option>Quarantine</option>
+                  <option>Ignore</option>
+                </select>
+                <button class="go-btn">Go</button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><a href="#">Adware.DealPly</a> has been detected</td>
+            <td class="risk-cell">High</td>
+            <td class="status-cell">Not Attempted</td>
+            <td>
+              <div class="action-cell">
+                <select class="action-select">
+                  <option>Delete*</option>
+                  <option>Quarantine</option>
+                  <option>Ignore</option>
+                </select>
+                <button class="go-btn">Go</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Infection message -->
+      <div class="infection-msg">
+        <p>System Critically Infected, If you are not able to click on this button, Immediately contact</p>
+        <div class="helpline">
+          <label>Support Toll Free Helpline</label>
+          <span>1-855-637-1900</span>
+        </div>
+      </div>
+
+      <!-- Warning note -->
+      <div class="warning-note">
+        <p>* Do not try to manually remove the virus, Hard Drive might fail</p>
+      </div>
+
+      <!-- Quarantine note -->
+      <div class="quarantine-note">
+        <p>Removed files are quarantined. To restore <a href="#">click here.</a></p>
+        <span class="rec-actions">* Recommended Actions</span>
+      </div>
+
+      <!-- Footer -->
+      <div class="popup-footer">
+        <div class="footer-left">
+          <div class="footer-norton">
+            <div class="footer-norton-circle">✓</div>
+            <div class="footer-norton-text">
+              <span class="fn">Norton™</span>
+              <span class="fs">by Symantec</span>
+            </div>
+          </div>
+          <div class="footer-msg">System Hard Drive May Fail, Do not close the page untill the issue is resolved</div>
+        </div>
+        <div class="footer-right">
+          <span class="export-link">Export Results</span>
+          <button class="close-btn">Close</button>
+          <button class="apply-btn">Apply All</button>
+        </div>
+      </div>
+
+    </div><!-- /popup -->
+
+  </div><!-- /browser-body -->
+</div><!-- /browser -->
+
+</body>
+</html>

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify Aadhaar - UIDAI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      background-color: #f2f2f2;
+      color: #333;
+    }
+
+    /* ── Top gov bar ── */
+    .gov-bar {
+      background-color: #003082;
+      color: #fff;
+      font-size: 11px;
+      padding: 4px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .gov-bar .left { display: flex; align-items: center; gap: 8px; }
+    .gov-bar img { height: 18px; }
+    .gov-bar a { color: #ffd700; text-decoration: none; font-size: 11px; }
+
+    /* ── Header ── */
+    header {
+      background: #fff;
+      border-bottom: 3px solid #FF6600;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Aadhaar logo drawn with CSS/SVG */
+    .aadhaar-logo {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .aadhaar-logo .brand-name {
+      font-size: 28px;
+      font-weight: 900;
+      color: #FF6600;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+    .aadhaar-logo .brand-sub {
+      font-size: 10px;
+      color: #003082;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .aadhaar-logo .brand-tag {
+      font-size: 10px;
+      color: #555;
+      margin-top: 1px;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 50px;
+      background: #ccc;
+    }
+
+    .uidai-name {
+      display: flex;
+      flex-direction: column;
+    }
+    .uidai-name .full { font-size: 11px; color: #003082; font-weight: 700; line-height: 1.4; }
+    .uidai-name .short { font-size: 9px; color: #666; }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #003082;
+    }
+    .header-right a { color: #003082; text-decoration: none; font-weight: 700; font-size: 12px; }
+    .header-right a:hover { text-decoration: underline; }
+    .helpline {
+      background: #003082;
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* ── Nav bar ── */
+    nav {
+      background: #003082;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      overflow-x: auto;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      font-size: 13px;
+      padding: 12px 16px;
+      display: inline-block;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+    }
+    nav a:hover, nav a.active {
+      background: rgba(255,255,255,0.1);
+      border-bottom-color: #FF6600;
+    }
+
+    /* ── Breadcrumb ── */
+    .breadcrumb {
+      background: #e8edf5;
+      padding: 8px 24px;
+      font-size: 12px;
+      color: #555;
+      border-bottom: 1px solid #ccc;
+    }
+    .breadcrumb a { color: #003082; text-decoration: none; }
+    .breadcrumb span { color: #888; margin: 0 6px; }
+
+    /* ── Main content ── */
+    main {
+      max-width: 900px;
+      margin: 28px auto;
+      padding: 0 16px;
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    /* ── Card ── */
+    .card {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      border-top: 4px solid #FF6600;
+      border-radius: 4px;
+      padding: 28px 32px 32px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #003082;
+      margin-bottom: 6px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 22px;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    /* ── Form ── */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 6px;
+    }
+
+    .form-group .req { color: #cc0000; }
+
+    .form-group input[type="text"],
+    .form-group input[type="tel"] {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 14px;
+      border: 1px solid #aaa;
+      border-radius: 3px;
+      outline: none;
+      font-family: inherit;
+      letter-spacing: 1px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-group input:focus {
+      border-color: #003082;
+      box-shadow: 0 0 0 2px rgba(0,48,130,.2);
+    }
+    .form-group input.error { border-color: #cc0000; }
+    .form-group input.error:focus { box-shadow: 0 0 0 2px rgba(204,0,0,.2); }
+
+    .field-hint {
+      font-size: 11px;
+      color: #777;
+      margin-top: 4px;
+    }
+
+    .error-msg {
+      font-size: 12px;
+      color: #cc0000;
+      margin-top: 5px;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* Captcha box */
+    .captcha-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+    }
+    .captcha-box input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #003082;
+    }
+    .captcha-label { font-size: 13px; color: #333; }
+    .captcha-logo {
+      margin-left: auto;
+      font-size: 10px;
+      color: #666;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: #003082;
+      color: #fff;
+      border: none;
+      padding: 10px 28px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #002060; }
+    .btn-primary:disabled { background: #7a97cc; cursor: not-allowed; }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: #003082;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      font-family: inherit;
+      padding: 0;
+      margin-left: 16px;
+    }
+    .btn-link:hover { color: #FF6600; }
+
+    /* OTP step */
+    .otp-sent-info {
+      background: #e8f4e8;
+      border: 1px solid #5a9c5a;
+      border-radius: 3px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #2d6a2d;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .otp-sent-info.visible { display: block; }
+
+    .otp-inputs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .otp-inputs input {
+      width: 44px;
+      height: 48px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      border: 1px solid #aaa;
+      border-radius: 3px;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .otp-inputs input:focus {
+      border-color: #003082;
+      box-shadow: 0 0 0 2px rgba(0,48,130,.2);
+    }
+
+    .resend-row {
+      font-size: 12px;
+      color: #555;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    .resend-row a { color: #003082; cursor: pointer; text-decoration: underline; }
+    .resend-row a:hover { color: #FF6600; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-box {
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      border-top: 4px solid #003082;
+      border-radius: 4px;
+      padding: 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .sidebar-box h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #003082;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .sidebar-box ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar-box ul li {
+      padding: 5px 0;
+      border-bottom: 1px dotted #ddd;
+      color: #555;
+      font-size: 12px;
+    }
+    .sidebar-box ul li:last-child { border-bottom: none; }
+    .sidebar-box ul li::before {
+      content: "▸ ";
+      color: #FF6600;
+    }
+
+    .info-box {
+      background: #fff8e1;
+      border: 1px solid #f0c050;
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .info-box strong { color: #cc6600; }
+
+    /* ── Footer ── */
+    footer {
+      background: #003082;
+      color: #cdd8f0;
+      padding: 20px 24px;
+      margin-top: 32px;
+      font-size: 12px;
+    }
+    .footer-top {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      max-width: 900px;
+      margin: 0 auto 16px;
+    }
+    .footer-col h4 {
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .footer-col a {
+      display: block;
+      color: #aabbdd;
+      text-decoration: none;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+    .footer-col a:hover { color: #FF6600; }
+    .footer-bottom-bar {
+      border-top: 1px solid rgba(255,255,255,.2);
+      padding-top: 14px;
+      text-align: center;
+      font-size: 11px;
+      color: #99aac0;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Steps visibility ── */
+    #step-aadhaar { display: block; }
+    #step-otp     { display: none; }
+
+    @media (max-width: 700px) {
+      main { flex-direction: column; }
+      .sidebar { width: 100%; }
+      header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Gov bar -->
+<div class="gov-bar">
+  <div class="left">
+    <span>&#127470;&#127475;</span>
+    <span>Government of India &nbsp;|&nbsp; भारत सरकार</span>
+  </div>
+  <div>
+    <a href="#">Skip to Main Content</a> &nbsp;|&nbsp;
+    <a href="#">Screen Reader Access</a> &nbsp;|&nbsp;
+    <a href="#">हिन्दी</a>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="header-left">
+    <!-- National emblem placeholder -->
+    <svg width="42" height="48" viewBox="0 0 42 48" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="21" cy="20" rx="18" ry="18" fill="none" stroke="#003082" stroke-width="2"/>
+      <ellipse cx="21" cy="20" rx="12" ry="12" fill="none" stroke="#003082" stroke-width="1.5"/>
+      <circle cx="21" cy="20" r="4" fill="#003082"/>
+      <text x="21" y="44" text-anchor="middle" font-size="7" fill="#003082" font-weight="bold" font-family="Arial">INDIA</text>
+      <line x1="5" y1="28" x2="37" y2="28" stroke="#FF6600" stroke-width="1.5"/>
+    </svg>
+
+    <div class="header-divider"></div>
+
+    <div class="aadhaar-logo">
+      <span class="brand-name">आधार</span>
+      <span class="brand-sub">Aadhaar</span>
+      <span class="brand-tag">mera Aadhaar, meri pehchaan</span>
+    </div>
+
+    <div class="header-divider"></div>
+
+    <div class="uidai-name">
+      <span class="full">Unique Identification<br>Authority of India</span>
+      <span class="short">भारतीय विशिष्ट पहचान प्राधिकरण</span>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <div>
+      <div class="helpline">Toll Free: 1947</div>
+      <div style="font-size:10px;color:#555;text-align:center;margin-top:3px;">Mon–Sat 7AM–11PM</div>
+    </div>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav>
+  <a href="#">Home</a>
+  <a href="#">My Aadhaar</a>
+  <a href="#" class="active">Aadhaar Services</a>
+  <a href="#">About UIDAI</a>
+  <a href="#">Ecosystem</a>
+  <a href="#">Media</a>
+  <a href="#">Contact</a>
+</nav>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a href="#">Home</a>
+  <span>›</span>
+  <a href="#">Aadhaar Services</a>
+  <span>›</span>
+  Verify Aadhaar OTP
+</div>
+
+<!-- Main -->
+<main>
+
+  <!-- Card -->
+  <div class="card">
+
+    <!-- Step 1: Aadhaar number -->
+    <div id="step-aadhaar">
+      <div class="card-title">Aadhaar OTP Verification</div>
+      <div class="card-subtitle">
+        Enter your 12-digit Aadhaar number to receive an OTP on your registered mobile number.
+        This service is free of cost.
+      </div>
+
+      <div class="form-group">
+        <label>Aadhaar Number <span class="req">*</span></label>
+        <input type="tel" id="aadhaar-input" maxlength="14" placeholder="XXXX XXXX XXXX" oninput="formatAadhaar(this)" />
+        <div class="field-hint">Enter your 12-digit Aadhaar number (UID)</div>
+        <div class="error-msg" id="aadhaar-error">Please enter a valid 12-digit Aadhaar number.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Full Name (as on Aadhaar) <span class="req">*</span></label>
+        <input type="text" id="name-input" placeholder="Enter your full name" />
+        <div class="error-msg" id="name-error">Please enter your full name.</div>
+      </div>
+
+      <!-- Captcha -->
+      <div class="captcha-box">
+        <input type="checkbox" id="captcha-check" />
+        <span class="captcha-label">I'm not a robot</span>
+        <div class="captcha-logo">
+          <div style="font-size:18px;">🔒</div>
+          <div>reCAPTCHA</div>
+          <div style="font-size:9px;color:#999;">Privacy · Terms</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="handleSendOTP()">Send OTP</button>
+    </div>
+
+    <!-- Step 2: OTP -->
+    <div id="step-otp">
+      <div class="card-title">Enter OTP</div>
+      <div class="card-subtitle">
+        An OTP has been sent to your Aadhaar-linked mobile number.<br>
+        <strong id="masked-mobile"></strong>
+      </div>
+
+      <div class="otp-sent-info visible" id="otp-sent-box">
+        ✔ OTP sent successfully to your registered mobile number.
+      </div>
+
+      <div class="form-group">
+        <label>Enter 6-digit OTP <span class="req">*</span></label>
+        <div class="otp-inputs">
+          <input type="tel" maxlength="1" class="otp-digit" oninput="otpMove(this, 0)" />
+          <input type="tel" maxlength="1" class="otp-digit" oninput="otpMove(this, 1)" />
+          <input type="tel" maxlength="1" class="otp-digit" oninput="otpMove(this, 2)" />
+          <input type="tel" maxlength="1" class="otp-digit" oninput="otpMove(this, 3)" />
+          <input type="tel" maxlength="1" class="otp-digit" oninput="otpMove(this, 4)" />
+          <input type="tel" maxlength="1" class="otp-digit" oninput="otpMove(this, 5)" />
+        </div>
+        <div class="error-msg" id="otp-error">Please enter the 6-digit OTP.</div>
+      </div>
+
+      <div class="resend-row">
+        Didn't receive OTP? <a onclick="resendOTP()">Resend OTP</a>
+        &nbsp;|&nbsp; OTP valid for <span id="timer">10:00</span>
+      </div>
+
+      <button class="btn-primary" id="verify-btn" onclick="handleVerify()">Verify OTP</button>
+      <button class="btn-link" onclick="goBack()">← Change Aadhaar Number</button>
+    </div>
+
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="info-box">
+      <strong>⚠ Important Notice:</strong><br>
+      Due to high demand, only valid Aadhaar holders are eligible. Verification is mandatory to avail benefits.
+    </div>
+
+    <div class="sidebar-box">
+      <h3>Quick Links</h3>
+      <ul>
+        <li>Download Aadhaar</li>
+        <li>Update Aadhaar</li>
+        <li>Lock/Unlock Biometrics</li>
+        <li>Check Aadhaar Status</li>
+        <li>Virtual ID (VID)</li>
+        <li>Order Aadhaar PVC Card</li>
+      </ul>
+    </div>
+
+    <div class="sidebar-box">
+      <h3>Contact Us</h3>
+      <ul>
+        <li>Helpline: 1947</li>
+        <li>Email: help@uidai.gov.in</li>
+        <li>Mon–Sat: 7AM – 11PM</li>
+      </ul>
+    </div>
+  </div>
+
+</main>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-col">
+      <h4>Aadhaar Services</h4>
+      <a href="#">Download Aadhaar</a>
+      <a href="#">Update Aadhaar</a>
+      <a href="#">Check Status</a>
+      <a href="#">Lock / Unlock UID</a>
+    </div>
+    <div class="footer-col">
+      <h4>About UIDAI</h4>
+      <a href="#">About Us</a>
+      <a href="#">Organisational Structure</a>
+      <a href="#">Tenders</a>
+      <a href="#">Careers</a>
+    </div>
+    <div class="footer-col">
+      <h4>Policies</h4>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Use</a>
+      <a href="#">Accessibility</a>
+      <a href="#">RTI</a>
+    </div>
+    <div class="footer-col">
+      <h4>Connect</h4>
+      <a href="#">Twitter / X</a>
+      <a href="#">Facebook</a>
+      <a href="#">YouTube</a>
+      <a href="#">LinkedIn</a>
+    </div>
+  </div>
+  <div class="footer-bottom-bar">
+    © 2025 Unique Identification Authority of India (UIDAI), Government of India &nbsp;|&nbsp;
+    Last Updated: 05 April 2025 &nbsp;|&nbsp;
+    Visitors: 1,24,87,563
+  </div>
+</footer>
+
+<script>
+  var aadhaarValue = '';
+  var timerInterval = null;
+
+  function formatAadhaar(input) {
+    var val = input.value.replace(/\D/g, '').slice(0, 12);
+    var formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+    input.value = formatted;
+    aadhaarValue = val;
+  }
+
+  function handleSendOTP() {
+    var aadhaar = aadhaarValue;
+    var name = document.getElementById('name-input').value.trim();
+    var captcha = document.getElementById('captcha-check').checked;
+    var aadhaarInput = document.getElementById('aadhaar-input');
+    var nameInput = document.getElementById('name-input');
+    var aadhaarError = document.getElementById('aadhaar-error');
+    var nameError = document.getElementById('name-error');
+    var valid = true;
+
+    if (aadhaar.length !== 12) {
+      aadhaarInput.classList.add('error');
+      aadhaarError.classList.add('visible');
+      valid = false;
+    } else {
+      aadhaarInput.classList.remove('error');
+      aadhaarError.classList.remove('visible');
+    }
+
+    if (!name) {
+      nameInput.classList.add('error');
+      nameError.classList.add('visible');
+      valid = false;
+    } else {
+      nameInput.classList.remove('error');
+      nameError.classList.remove('visible');
+    }
+
+    if (!captcha) {
+      alert('Please verify that you are not a robot.');
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    // Show masked mobile
+    var masked = 'XXXXXX' + aadhaar.slice(-4);
+    document.getElementById('masked-mobile').textContent = 'OTP sent to: +91-' + masked;
+
+    document.getElementById('step-aadhaar').style.display = 'none';
+    document.getElementById('step-otp').style.display = 'block';
+
+    setTimeout(function () {
+      var digits = document.querySelectorAll('.otp-digit');
+      if (digits[0]) digits[0].focus();
+    }, 100);
+
+    startTimer(600);
+  }
+
+  function otpMove(input, index) {
+    input.value = input.value.replace(/\D/g, '').slice(-1);
+    var digits = document.querySelectorAll('.otp-digit');
+    if (input.value && index < 5) {
+      digits[index + 1].focus();
+    }
+  }
+
+  function resendOTP() {
+    document.getElementById('otp-sent-box').textContent = '✔ OTP resent to your registered mobile number.';
+    clearInterval(timerInterval);
+    startTimer(600);
+    var digits = document.querySelectorAll('.otp-digit');
+    digits.forEach(function (d) { d.value = ''; });
+    digits[0].focus();
+  }
+
+  function startTimer(seconds) {
+    var remaining = seconds;
+    var timerEl = document.getElementById('timer');
+    timerInterval = setInterval(function () {
+      remaining--;
+      var m = Math.floor(remaining / 60);
+      var s = remaining % 60;
+      timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        timerEl.textContent = 'Expired';
+      }
+    }, 1000);
+  }
+
+  function handleVerify() {
+    var digits = document.querySelectorAll('.otp-digit');
+    var otp = Array.from(digits).map(function (d) { return d.value; }).join('');
+    var otpError = document.getElementById('otp-error');
+    var btn = document.getElementById('verify-btn');
+
+    if (otp.length !== 6) {
+      otpError.classList.add('visible');
+      return;
+    }
+
+    otpError.classList.remove('visible');
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+
+    setTimeout(function () {
+      btn.disabled = false;
+      btn.textContent = 'Verify OTP';
+      otpError.textContent = 'Verification failed. Please try again or request a new OTP.';
+      otpError.classList.add('visible');
+      digits.forEach(function (d) { d.value = ''; });
+      digits[0].focus();
+    }, 2000);
+  }
+
+  function goBack() {
+    clearInterval(timerInterval);
+    document.getElementById('step-otp').style.display = 'none';
+    document.getElementById('step-aadhaar').style.display = 'block';
+    document.getElementById('otp-error').classList.remove('visible');
+    document.querySelectorAll('.otp-digit').forEach(function (d) { d.value = ''; });
+    document.getElementById('timer').textContent = '10:00';
+  }
+</script>
+
+</body>
+</html>

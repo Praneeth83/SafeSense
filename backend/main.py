@@ -3,12 +3,40 @@ from pydantic import BaseModel
 from typing import List
 from urllib.parse import urlparse
 import re
+import spacy
+import whois
+from datetime import datetime
 
 from models.emotional_model import detect_emotion
 from models.phising_model import detect_phishing
 from risk_engine import calculate_div_risk, get_div_weight, aggregate_risk
 
 app = FastAPI()
+
+# Load spaCy — only NER pipeline needed, lemmatizer disabled to avoid warning
+nlp = spacy.load("en_core_web_sm", disable=["parser", "lemmatizer"])
+
+# -----------------------------
+# WHOIS Cache
+# -----------------------------
+domain_age_cache = {}
+
+def get_domain_age(domain: str) -> int:
+    if domain in domain_age_cache:
+        return domain_age_cache[domain]
+    try:
+        w = whois.whois(domain)
+        creation_date = w.creation_date
+        if isinstance(creation_date, list):
+            creation_date = creation_date[0]
+        if creation_date:
+            age = max(0, (datetime.now() - creation_date).days)
+            domain_age_cache[domain] = age
+            return age
+    except:
+        pass
+    domain_age_cache[domain] = 365
+    return 365
 
 # -----------------------------
 # Request Models
@@ -29,72 +57,86 @@ class PageData(BaseModel):
     divs: List[DivData] = []
 
 # -----------------------------
-# Brand List
+# Text Cleaner
 # -----------------------------
-BRAND_KEYWORDS = [
-    "google","gmail","youtube","facebook","instagram","whatsapp","messenger",
-    "twitter","x","linkedin","reddit","snapchat","tiktok",
-    "apple","icloud","microsoft","windows","outlook","hotmail",
-    "amazon","flipkart","myntra","snapdeal","meesho",
-    "paypal","paytm","phonepe","gpay","upi","bhim",
-    "sbi","hdfc","icici","axis","kotak","yesbank","pnb","canara",
-    "irctc","makemytrip","goibibo","yatra","booking","airbnb","uber","ola",
-    "netflix","spotify","disney",
-    "github","dropbox","adobe","zoom"
-]
-
-# FIX 1: Massively expanded official domains list.
-# The old list was too small — claude.ai, anthropic.com, accounts.google.com etc. were missing.
-OFFICIAL_ROOT_DOMAINS = [
-    # Google ecosystem
-    "google.com", "google.co.in", "google.co.uk", "google.de", "google.fr",
-    "youtube.com", "youtu.be", "googleapis.com", "googleusercontent.com",
-    "accounts.google.com", "mail.google.com", "drive.google.com",
-    # Meta
-    "facebook.com", "instagram.com", "whatsapp.com", "messenger.com", "meta.com",
-    # Apple
-    "apple.com", "icloud.com",
-    # Microsoft
-    "microsoft.com", "live.com", "outlook.com", "hotmail.com",
-    "office.com", "microsoftonline.com", "azure.com", "bing.com",
-    # Amazon / AWS
-    "amazon.com", "amazon.in", "amazonaws.com", "aws.amazon.com",
-    # Anthropic / Claude
-    "anthropic.com", "claude.ai",
-    # Social / Comms
-    "twitter.com", "x.com", "linkedin.com", "reddit.com",
-    "snapchat.com", "tiktok.com", "telegram.org",
-    "zoom.us", "slack.com", "discord.com",
-    # Commerce
-    "flipkart.com", "myntra.com", "snapdeal.com", "meesho.com",
-    "shopify.com", "ebay.com",
-    # Payments
-    "paypal.com", "paytm.com", "phonepe.com", "razorpay.com", "stripe.com",
-    # Indian Banks
-    "sbi.co.in", "onlinesbi.sbi", "hdfcbank.com", "icicibank.com",
-    "axisbank.com", "kotak.com", "yesbank.in", "pnbindia.in",
-    "canarabank.com", "unionbankofindia.co.in",
-    # Travel / Services
-    "irctc.co.in", "makemytrip.com", "goibibo.com", "yatra.com",
-    "booking.com", "airbnb.com", "uber.com", "ola.com",
-    # Entertainment
-    "netflix.com", "spotify.com", "disneyplus.com", "hotstar.com",
-    # Dev / Tools
-    "github.com", "gitlab.com", "dropbox.com", "adobe.com",
-    "notion.so", "figma.com", "atlassian.com", "jira.com",
-    # News / Productivity
-    "wikipedia.org", "medium.com",
-]
-
-# FIX 2: Pre-build a set of root domains for fast O(1) lookups
-OFFICIAL_ROOT_SET = set(OFFICIAL_ROOT_DOMAINS)
+def clean_text(text: str) -> str:
+    """Remove symbols, arrows, and UI noise before NER."""
+    text = re.sub(r'[▾▴►◄→←▲▼●•◦–—|/\\]', ' ', text)
+    text = re.sub(r'[^\x00-\x7F]+', ' ', text)   # remove non-ASCII
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 # -----------------------------
-# Brand Detection
+# NER Brand Detection
+# No hardcoded brands — spaCy reads the page like a human
 # -----------------------------
-def detect_brands(text: str):
-    text = text.lower()
-    return list(set([brand for brand in BRAND_KEYWORDS if brand in text]))
+def detect_brands(text: str) -> list:
+    if not text or not text.strip():
+        return []
+
+    text = clean_text(text)
+    if len(text) < 3:
+        return []
+
+    doc = nlp(text)
+    brands = set()
+
+    for ent in doc.ents:
+        if ent.label_ in ("ORG", "PRODUCT"):
+            cleaned = ent.text.strip().lower()
+            # Filter out noise: too short, contains menu-like chars, numbers only
+            if (
+                len(cleaned) > 2
+                and "&" not in cleaned
+                and "\n" not in cleaned
+                and not cleaned.replace(" ", "").isdigit()
+                and len(cleaned.split()) <= 4  # avoid long nav phrases
+            ):
+                brands.add(cleaned)
+
+    return list(brands)
+
+# -----------------------------
+# Extract Brand Name FROM the Domain itself
+# Core idea: what is this domain pretending to be?
+# We extract the meaningful word from the domain and
+# check if the page text mentions it — that's the brand claim
+# No hardcoding needed.
+# -----------------------------
+def extract_domain_brand(domain: str) -> str:
+    """
+    Pull the most meaningful word from a domain.
+    e.g. 'secure-paypal-login.tk' → 'paypal'
+         'instagram-verify.com'  → 'instagram'
+         'hdfc-netbanking.in'    → 'hdfc'
+    We split on hyphens/dots and return the longest meaningful token
+    that is not a generic word.
+    """
+    GENERIC_WORDS = {
+        "secure", "login", "verify", "account", "update", "confirm",
+        "bank", "net", "online", "pay", "free", "gift", "lucky",
+        "winner", "support", "help", "service", "portal", "web",
+        "app", "sign", "in", "out", "my", "your", "the", "new",
+        "get", "now", "click", "here", "www", "com", "net", "org",
+        "in", "co", "tk", "ml", "xyz", "info", "biz"
+    }
+
+    # Remove TLD
+    parts = domain.split('.')
+    # Rejoin everything except the last part (TLD)
+    base = '.'.join(parts[:-1]) if len(parts) > 1 else domain
+
+    # Split on hyphens and dots
+    tokens = re.split(r'[-.]', base)
+
+    # Filter generics, keep longest meaningful token
+    candidates = [t for t in tokens if t and t not in GENERIC_WORDS and len(t) > 2]
+
+    if not candidates:
+        return ""
+
+    # Return longest candidate — most likely to be the brand name
+    return max(candidates, key=len)
 
 # -----------------------------
 # Root Domain
@@ -102,105 +144,110 @@ def detect_brands(text: str):
 def get_root_domain(domain: str) -> str:
     parts = domain.split('.')
     if len(parts) >= 3 and parts[-2] in ("co", "com", "net", "org", "gov", "ac"):
-        # Handle co.in, co.uk, com.au etc.
         return parts[-3] + "." + parts[-2] + "." + parts[-1]
     if len(parts) >= 2:
         return parts[-2] + "." + parts[-1]
     return domain
 
 # -----------------------------
-# URL Features
-# FIX 3: Completely rewritten — more accurate is_official, better domain_age_proxy
+# URL Feature Extraction
+# is_official is now determined by domain age + structure, not a hardcoded list
+# domain_mismatch is determined by comparing domain brand vs page brand
 # -----------------------------
-def extract_url_features(url: str, detected_brands: list):
+def extract_url_features(url: str, page_brands: list):
     try:
         parsed = urlparse(url)
         domain = parsed.netloc.lower()
         domain = re.sub(r'^www\.', '', domain)
-        # Strip port number if present
         domain = domain.split(':')[0]
 
         root_domain = get_root_domain(domain)
-
         domain_length = len(domain)
         special_char_count = len(re.findall(r'[-_0-9]', domain))
-
         is_ip = bool(re.match(r'^\d{1,3}(\.\d{1,3}){3}$', domain))
 
-        # FIX 3a: Count subdomains only beyond the root (e.g. a.b.google.com has 1 extra subdomain)
-        # Only flag if there are 3+ dots AND it doesn't match an official root
-        subdomain_parts = domain.split('.')
-        has_many_subdomains = (
-            len(subdomain_parts) >= 5 and  # raised from 3 to 5
-            not any(domain == off or domain.endswith("." + off) for off in OFFICIAL_ROOT_SET)
+        # Get real domain age via WHOIS
+        domain_age = 10 if is_ip else get_domain_age(root_domain)
+
+        # A domain is considered "established" if it's older than 1 year
+        is_established = domain_age > 365
+
+        suspicious_tlds = ['.tk', '.ml', '.ga', '.cf', '.gq', '.xyz',
+                           '.top', '.pw', '.click', '.gq', '.monster']
+        has_suspicious_tld = any(root_domain.endswith(t) for t in suspicious_tlds)
+
+        has_many_subdomains = len(domain.split('.')) >= 5
+
+        # Structural suspicion flags (no hardcoded brand list)
+        is_structurally_suspicious = (
+            is_ip or
+            has_suspicious_tld or
+            has_many_subdomains or
+            bool(re.search(r'(secure|login|verify|update|confirm|account|signin)', domain))
         )
 
-        # FIX 3b: Robust official check — exact match or subdomain of official root
-        is_official = any(
-            domain == official or domain.endswith("." + official)
-            for official in OFFICIAL_ROOT_SET
-        )
-
-        brand_in_page = len(detected_brands) > 0
+        # ------------------------------------
+        # Domain Mismatch — fully dynamic
+        # ------------------------------------
+        # Extract what brand THIS domain is pretending to be
+        domain_brand = extract_domain_brand(domain)
 
         domain_mismatch = 0
 
-        # FIX 3c: Only flag domain mismatch when it's truly suspicious.
-        # Official domains are NEVER a mismatch even if they have brand keywords.
-        if not is_official:
-            if is_ip:
+        if domain_brand:
+            # Case 1: domain brand word is NOT in the root domain properly
+            # e.g. domain is 'paypal-secure.tk' → domain_brand = 'paypal'
+            # root_domain is 'paypal-secure.tk' — paypal IS there but it's not paypal.com
+            # So check: is root_domain EXACTLY just brand.tld or brand.co.tld?
+            legitimate_pattern = bool(re.match(
+                rf'^{re.escape(domain_brand)}\.(com|in|org|net|co\.in|co\.uk|io|app)$',
+                root_domain
+            ))
+            if not legitimate_pattern:
+                # Domain looks like it's impersonating its own brand word
                 domain_mismatch = 1
-            elif has_many_subdomains:
-                domain_mismatch = 1
-            elif brand_in_page:
-                # Check: does any detected brand NOT match the actual domain?
-                for brand in detected_brands:
-                    if brand not in root_domain and brand not in domain:
+
+        # Case 2: page mentions a brand that doesn't match domain at all
+        if not domain_mismatch and page_brands:
+            for brand in page_brands:
+                brand_clean = brand.replace(" ", "").lower()
+                if len(brand_clean) > 3:  # skip short noise like "co"
+                    if brand_clean not in root_domain and brand_clean not in domain:
                         domain_mismatch = 1
                         break
 
-        # FIX 3d: domain_age_proxy — use values that align with training data ranges
-        # Training legit: 200-5000 days. Training phishing: 5-200 days.
-        suspicious_tlds = ['.tk', '.ml', '.ga', '.cf', '.gq', '.xyz', '.top', '.pw', '.click']
-        # Use 2000 for known good TLDs so the ML model firmly classifies them as legit
-        domain_age_proxy = 1500  # neutral default (was 800 — too close to phishing range)
-
-        if is_ip:
-            domain_age_proxy = 20
-        elif is_official:
-            domain_age_proxy = 3000  # well-established site
-        else:
-            for tld in suspicious_tlds:
-                if domain.endswith(tld):
-                    domain_age_proxy = 50
-                    break
-            else:
-                # For normal TLDs, use a healthy value
-                domain_age_proxy = 1500
+        # Case 3: structural suspicion alone is enough to flag
+        if is_structurally_suspicious and not is_established:
+            domain_mismatch = 1
 
         return {
             "domain_mismatch": domain_mismatch,
             "domain_length": domain_length,
-            "domain_age": domain_age_proxy,
+            "domain_age": domain_age,
             "special_char_count": special_char_count,
             "root_domain": root_domain,
-            "is_official": is_official
+            "domain_brand": domain_brand,
+            "is_established": is_established,
+            "is_structurally_suspicious": is_structurally_suspicious
         }
 
-    except Exception:
+    except Exception as e:
+        print(f"URL feature extraction error: {e}")
         return {
             "domain_mismatch": 0,
             "domain_length": 10,
-            "domain_age": 1500,
+            "domain_age": 365,
             "special_char_count": 0,
             "root_domain": "",
-            "is_official": False
+            "domain_brand": "",
+            "is_established": True,
+            "is_structurally_suspicious": False
         }
 
 # -----------------------------
 # Div Filters
 # -----------------------------
-def is_actionable_div(div):
+def is_actionable_div(div: DivData) -> bool:
     return (
         div.hasPasswordField or
         div.hasOTPField or
@@ -209,14 +256,9 @@ def is_actionable_div(div):
         div.numInputs >= 2
     )
 
-def is_layout_div(selector: str):
-    bad_keywords = [
-        "body", "html", "#root",
-        "container", "wrapper", "main", "content",
-        "page", "layout", "section", "nav", "header", "footer"
-    ]
-    selector = selector.lower()
-    return any(word in selector for word in bad_keywords)
+def is_layout_div(selector: str) -> bool:
+    layout_words = ["body", "html", "#root", "layout", "nav", "header", "footer"]
+    return any(word in selector.lower() for word in layout_words)
 
 # -----------------------------
 # Health Check
@@ -227,26 +269,33 @@ def root():
 
 # -----------------------------
 # Main Analysis
-# FIX 4: Rewritten detection rules — official sites never get phishing flags
 # -----------------------------
 @app.post("/analyze")
-def analyze_page(data: PageData):
+async def analyze_page(data: PageData):
 
     div_results = []
     risky_selectors = []
     warning_selectors = []
     div_risks = []
 
+    # --- Page-level brand detection via NER ---
     page_brands = detect_brands(data.text)
+
+    # --- URL feature extraction (WHOIS + structural analysis) ---
     url_features = extract_url_features(data.url, page_brands)
 
-    is_official = url_features["is_official"]
     is_mismatch = url_features["domain_mismatch"]
+    is_established = url_features["is_established"]
+    is_suspicious = url_features["is_structurally_suspicious"]
+
+    # Treat established + non-suspicious as "safe" (replaces hardcoded OFFICIAL list)
+    is_safe_domain = is_established and not is_mismatch and not is_suspicious
 
     for i, div in enumerate(data.divs):
 
-        detected_brands = detect_brands(div.text)
-        brand_present = 1 if detected_brands else 0
+        # NER on each div
+        div_brands = detect_brands(div.text)
+        brand_present = 1 if (div_brands or page_brands) else 0
 
         emotion_score, triggers = detect_emotion(div.text)
 
@@ -265,80 +314,64 @@ def analyze_page(data: PageData):
 
         div_risk = calculate_div_risk(emotion_score, phishing_score)
 
-        # Boost risk for important sections (only on non-official sites)
-        if not is_official:
+        # Boost risk for non-safe domains with sensitive inputs
+        if not is_safe_domain:
             if div.numInputs > 0:
-                div_risk += 0.1
+                div_risk += 0.08
             if div.hasFileUpload:
-                div_risk += 0.15
+                div_risk += 0.12
             if div.hasSensitiveField:
-                div_risk += 0.15
+                div_risk += 0.12
 
-        # FIX 4a: Apply official discount BEFORE capping, not after detection rules.
-        # Use a stronger discount — official sites should almost never exceed 0.40 risk.
-        if is_official:
-            div_risk *= 0.25  # was 0.5 — not strong enough
+        # Dampen risk for clearly safe/established domains
+        if is_safe_domain:
+            div_risk *= 0.25
 
         div_risk = min(div_risk, 1.0)
 
-        weight = get_div_weight(
-            div.hasSensitiveField,
-            bool(detected_brands),
-            emotion_score
-        )
-
+        weight = get_div_weight(div.hasSensitiveField, bool(page_brands or div_brands), emotion_score)
         div_results.append((i, div_risk, weight))
         div_risks.append(div_risk)
 
-        # -------------------------
-        # FIX 4b: Detection Rules — completely rewritten with clear priority
-        # Rule 1: Official sites NEVER get phishing flags — only warnings for
-        #         genuinely risky fields (file upload asking for documents, OTP scams)
-        # Rule 2: Phishing requires domain mismatch OR (brand impersonation + no official match)
-        # -------------------------
+        # --- Flagging Logic ---
+        flag_phishing = False
+        flag_warning = False
+
         has_password = div.hasPasswordField
         has_otp = div.hasOTPField
         has_upload = div.hasFileUpload
         is_sensitive = div.hasSensitiveField
 
-        flag_phishing = False
-        flag_warning = False
-
-        if is_official:
-            # Official sites: only warn for file uploads with sensitive fields
-            # (e.g. KYC document uploads on banking sites — legitimate but worth noting)
-            # Do NOT warn for normal login forms on Google, banks, etc.
+        if is_safe_domain:
+            # Even safe domains can have suspicious forms
             if has_upload and is_sensitive and div.numInputs >= 3:
                 flag_warning = True
-            # Everything else on official sites: no flag at all
 
         else:
-            # Non-official sites: apply phishing detection
-
-            # Strong phishing signals — require domain mismatch
+            # Definite phishing signals
             if is_mismatch and (has_password or has_otp):
                 flag_phishing = True
 
             elif is_mismatch and is_sensitive and has_upload:
                 flag_phishing = True
 
-            elif is_mismatch and page_brands and has_upload:
+            elif is_mismatch and brand_present and (has_password or has_otp):
                 flag_phishing = True
 
-            # Brand impersonation: brand in content but domain doesn't match brand
-            elif brand_present and has_password and is_mismatch:
+            elif div_risk > 0.88 and is_mismatch:
                 flag_phishing = True
 
-            # FIX 4c: High ML risk threshold raised from 0.80 to 0.90 for non-mismatch sites.
-            # Only flag if BOTH ML says risky AND there's mismatch — prevents false positives
-            # on legitimate new/unknown sites.
-            elif div_risk > 0.90 and is_mismatch:
-                flag_phishing = True
-
-            # Mild warning: suspicious but not confirmed phishing
-            elif div_risk > 0.75 and (has_password or is_sensitive):
+            # Warning signals — suspicious but not confirmed
+            elif div_risk > 0.72 and (has_password or is_sensitive):
                 flag_warning = True
 
+            elif is_suspicious and (has_password or has_otp) and not is_established:
+                flag_warning = True
+
+            elif brand_present and (has_password or has_otp) and not is_established:
+                flag_warning = True
+
+        # Only flag actionable, non-layout divs
         if is_actionable_div(div) and not is_layout_div(div.selector):
             if flag_phishing:
                 risky_selectors.append(div.selector)
@@ -347,24 +380,43 @@ def analyze_page(data: PageData):
 
     final_risk, risky_divs = aggregate_risk(div_results)
 
-    # FIX 4d: Stronger official discount on final risk
-    if is_official:
-        final_risk *= 0.25  # was 0.6
+    # Safe domain dampening at page level
+    if is_safe_domain:
+        final_risk *= 0.25
 
-    # Risk level
-    if final_risk > 0.75:
-        level = "high"
-    elif final_risk > 0.30:
-        level = "medium"
-    else:
-        level = "low"
+    # Strong override: brand on page + mismatch + password/OTP = definitely phishing
+    if page_brands and is_mismatch:
+        for div in data.divs:
+            if div.hasPasswordField or div.hasOTPField:
+                final_risk = max(final_risk, 0.92)
+                break
 
-    print(f"URL: {data.url}")
-    print(f"IS OFFICIAL: {is_official}")
-    print(f"DOMAIN MISMATCH: {is_mismatch}")
-    print(f"FINAL PAGE RISK: {final_risk}")
-    print(f"RISKY SELECTORS: {risky_selectors}")
-    print(f"WARNING SELECTORS: {warning_selectors}")
+    # Structural suspicion override: new domain + suspicious structure + has inputs
+    if is_suspicious and not is_established:
+        for div in data.divs:
+            if div.hasPasswordField or div.hasOTPField or div.hasSensitiveField:
+                final_risk = max(final_risk, 0.75)
+                break
+
+    final_risk = min(final_risk, 1.0)
+
+    level = "high" if final_risk > 0.75 else "medium" if final_risk > 0.30 else "low"
+
+    # Debug output
+    print(f"\n{'='*60}")
+    print(f"URL          : {data.url}")
+    print(f"ROOT DOMAIN  : {url_features['root_domain']}")
+    print(f"DOMAIN BRAND : {url_features['domain_brand']}")
+    print(f"DOMAIN AGE   : {url_features['domain_age']} days")
+    print(f"MISMATCH     : {is_mismatch}")
+    print(f"ESTABLISHED  : {is_established}")
+    print(f"SUSPICIOUS   : {is_suspicious}")
+    print(f"SAFE DOMAIN  : {is_safe_domain}")
+    print(f"PAGE BRANDS  : {page_brands}")
+    print(f"FINAL RISK   : {final_risk:.4f} → {level.upper()}")
+    print(f"RISKY        : {risky_selectors}")
+    print(f"WARNING      : {warning_selectors}")
+    print(f"{'='*60}\n")
 
     return {
         "final_risk": final_risk,
